@@ -2,9 +2,18 @@ import fitz
 import re
 
 from presidio_analyzer import AnalyzerEngine, PatternRecognizer, Pattern
+from presidio_analyzer.nlp_engine import SpacyNlpEngine
+import spacy
 
-# -------- INITIALIZE ANALYZER GLOBALLY --------
-global_analyzer = AnalyzerEngine()
+# Load optimized SpaCy model excluding heavy components to save RAM
+nlp = spacy.load("en_core_web_sm", exclude=["parser", "attribute_ruler", "lemmatizer"])
+
+class LoadedSpacyNlpEngine(SpacyNlpEngine):
+    def __init__(self, loaded_model):
+        self.nlp = {"en": loaded_model}
+
+nlp_engine = LoadedSpacyNlpEngine(loaded_model=nlp)
+global_analyzer = AnalyzerEngine(nlp_engine=nlp_engine)
 
 # -------- CUSTOM PATTERNS --------
 aadhaar_pattern = Pattern(
