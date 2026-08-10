@@ -109,26 +109,41 @@ def anonymize_pdf(pdf_path):
         language="en"
     )
 
-    # -------- ANONYMIZE --------
+    # -------- ANONYMIZE WITH MAPPING --------
 
-    anonymizer = AnonymizerEngine()
+    # Sort results in descending order of start index to do safe in-place replacement
+    sorted_results = sorted(results, key=lambda x: x.start, reverse=True)
 
-    anonymized = anonymizer.anonymize(
-        text=text,
-        analyzer_results=results
-    )
+    pii_map = {}
+    value_to_placeholder = {}
+    entity_counters = {}
 
-    anonymized_text = anonymized.text
+    anonymized_text = text
+    for res in sorted_results:
+        start, end = res.start, res.end
+        entity_type = res.entity_type
+        original_val = text[start:end]
+        
+        # Don't map empty strings
+        if not original_val.strip():
+            continue
+            
+        if original_val in value_to_placeholder:
+            placeholder = value_to_placeholder[original_val]
+        else:
+            counter = entity_counters.get(entity_type, 1)
+            placeholder = f"<{entity_type}_{counter}>"
+            entity_counters[entity_type] = counter + 1
+            value_to_placeholder[original_val] = placeholder
+            pii_map[placeholder] = original_val
+            
+        anonymized_text = anonymized_text[:start] + placeholder + anonymized_text[end:]
 
-    # -------- CLEAN DUPLICATES --------
-
-    anonymized_text = re.sub(r'(<LOCATION>\s*,?\s*){2,}', '<LOCATION> ', anonymized_text)
-
-    anonymized_text = re.sub(r'(<PERSON>\s*){2,}', '<PERSON> ', anonymized_text)
+    # -------- CLEAN DUPLICATES & FORMAT --------
 
     anonymized_text = anonymized_text.replace("LockIin", "Lock-in")
 
-    return anonymized_text
+    return anonymized_text, pii_map
 
 # from mask_pdf import anonymize_pdf
 

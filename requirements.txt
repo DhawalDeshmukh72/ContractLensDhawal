@@ -10,3 +10,6 @@ langchain-groq
 python-dotenv
 presidio_analyzer
 presidio_anonymizer
+fastapi
+uvicorn
+python-multipart

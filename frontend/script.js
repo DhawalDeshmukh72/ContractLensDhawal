@@ -14,6 +14,38 @@ window.LegaleaseApp = (() => {
     let isDarkMode = false;
     let loadedFileName = 'contract.pdf';
 
+    // --- PII MAPPING UTILITIES ---
+    const restoreText = (text, piiMap) => {
+        if (!text || !piiMap) return text;
+        let restored = text;
+        const sortedEntries = Object.entries(piiMap).sort((a, b) => b[0].length - a[0].length);
+        for (const [placeholder, realValue] of sortedEntries) {
+            const match = placeholder.match(/<([A-Z_]+)_(\d+)>/);
+            if (match) {
+                const entityType = match[1]; // "PERSON"
+                const num = match[2]; // "1"
+                const regexStr = `(?:<|&lt;|\\b)(${entityType})(?:_|\\s*)(${num})(?:>|&gt;|\\b)`;
+                const regex = new RegExp(regexStr, 'gi');
+                restored = restored.replace(regex, realValue);
+            } else {
+                restored = restored.replaceAll(placeholder, realValue);
+            }
+        }
+        return restored;
+    };
+
+    const anonymizeText = (text, piiMap) => {
+        if (!text || !piiMap) return text;
+        let anonymized = text;
+        const sortedEntries = Object.entries(piiMap).sort((a, b) => b[1].length - a[1].length);
+        for (const [placeholder, realValue] of sortedEntries) {
+            const escaped = realValue.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+            const regex = new RegExp(escaped, 'gi');
+            anonymized = anonymized.replaceAll(regex, placeholder);
+        }
+        return anonymized;
+    };
+
     // --- THEME MANAGEMENT ---
     const initTheme = () => {
         const toggleBtn = document.getElementById('theme-toggle');
@@ -131,7 +163,7 @@ window.LegaleaseApp = (() => {
             const formData = new FormData();
             formData.append('file', selectedFile);
 
-            const fetchPromise = fetch('http://127.0.0.1:8000/analyze_contract', {
+            const fetchPromise = fetch('/analyze_contract', {
                 method: 'POST',
                 body: formData
             });
@@ -428,6 +460,8 @@ window.LegaleaseApp = (() => {
             return;
         }
 
+        const piiMap = contractData ? contractData.pii_map : null;
+
         filtered.forEach((clause, index) => {
             const riskClass = `risk-${clause.risk_level.toLowerCase()}`;
             const badgeClass = `badge-${clause.risk_level.toLowerCase()}`;
@@ -456,6 +490,10 @@ window.LegaleaseApp = (() => {
             const headerId = `clause-header-${clause.clause_id || index}`;
             const bodyId = `clause-body-${clause.clause_id || index}`;
 
+            const restoredClauseText = restoreText(clause.clause_text, piiMap);
+            const restoredReason = restoreText(clause.reason, piiMap);
+            const restoredLawRef = restoreText(lawRefHTML, piiMap);
+
             const cardHTML = `
             <div class="clause-card ${riskClass}">
                 <div class="clause-header" id="${headerId}" onclick="document.getElementById('${bodyId}').classList.toggle('hidden'); this.querySelector('.fa-chevron-down').classList.toggle('fa-rotate-180')">
@@ -471,20 +509,20 @@ window.LegaleaseApp = (() => {
                 
                 <div class="clause-body" id="${bodyId}">
                     <div class="clause-text">
-                        "${clause.clause_text}"
+                        "${restoredClauseText}"
                     </div>
                     
                     <div class="reason-box">
                         <div class="reason-title">
                             <i class="fa-solid fa-clipboard-question" style="color:var(--primary-color);"></i> AI Analysis
                         </div>
-                        <p>${clause.reason}</p>
+                        <p>${restoredReason}</p>
                     </div>
                     
-                    ${lawRefHTML}
+                    ${restoredLawRef}
                     
                     <div style="margin-top: 1rem; display: flex; justify-content: flex-end;">
-                        <button class="btn btn-outline" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;" onclick="navigator.clipboard.writeText('${clause.clause_text.replace(/'/g, "\\'")}')">
+                        <button class="btn btn-outline" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;" onclick="navigator.clipboard.writeText('${restoredClauseText.replace(/'/g, "\\'")}')">
                             <i class="fa-solid fa-copy"></i> Copy Text
                         </button>
                     </div>
@@ -607,6 +645,9 @@ window.LegaleaseApp = (() => {
             const text = input.value.trim();
             if(!text) return;
 
+            const piiMap = contractData ? contractData.pii_map : null;
+            const anonymizedQuestion = anonymizeText(text, piiMap);
+
             // 1. Add User Message
             appendMessage(text, 'user-message');
             input.value = '';
@@ -622,13 +663,13 @@ window.LegaleaseApp = (() => {
 
             // 3. Call API
             try {
-                const response = await fetch('http://127.0.0.1:8000/ask_question', {
+                const response = await fetch('/ask_question', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        question: text,
+                        question: anonymizedQuestion,
                         // Optionally pass analysis data so backend knows context
                         contract_context: contractData 
                     })
@@ -638,7 +679,8 @@ window.LegaleaseApp = (() => {
 
                 if(response.ok) {
                     const data = await response.json();
-                    appendMessage(data.answer || "Processing complete.", 'bot-message');
+                    const restoredAnswer = restoreText(data.answer || "Processing complete.", piiMap);
+                    appendMessage(restoredAnswer, 'bot-message');
                 } else {
                     // MOCK fallback for demonstration
                     setTimeout(() => {

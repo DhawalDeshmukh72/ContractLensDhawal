@@ -6,6 +6,7 @@ from typing import Optional
 
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from src.data_loader import load_all_documents
@@ -66,7 +67,7 @@ Return ONLY valid JSON in this format:
 def analyze_contract(pdf_path):
 
     # -------- Step 1: Anonymize PDF --------
-    masked_text = anonymize_pdf(pdf_path)
+    masked_text, pii_map = anonymize_pdf(pdf_path)
 
     # -------- Step 2: Split clauses --------
     clauses = split_clauses(masked_text)
@@ -133,13 +134,16 @@ def analyze_contract(pdf_path):
 
     return {
         "total_clauses": len(results),
-        "analysis": results
+        "analysis": results,
+        "pii_map": pii_map
     }
 
 @app.post("/analyze_contract")
 async def api_analyze_contract(file: UploadFile = File(...)):
-    # Save the uploaded file to a temporary path
-    temp_pdf_path = BASE_DIR / f"temp_{file.filename}"
+    # Save the uploaded file to a temporary path in a dedicated tmp folder
+    tmp_dir = BASE_DIR / "tmp"
+    tmp_dir.mkdir(exist_ok=True)
+    temp_pdf_path = tmp_dir / f"temp_{file.filename}"
     with open(temp_pdf_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
@@ -189,6 +193,9 @@ Answer:"""
             
     return {"answer": answer}
 
+# Serve frontend static files
+app.mount("/", StaticFiles(directory=str(BASE_DIR / "frontend"), html=True), name="frontend")
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main2:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main2:app", host="0.0.0.0", port=8000, reload=False)

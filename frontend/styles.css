@@ -16,8 +16,10 @@
     --risk-low-bg: rgba(16, 185, 129, 0.15);
     
     /* Light Mode Variables with Glassmorphism */
-    --bg-image: url('https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&q=80&w=2000');
-    --bg-color: #f8fafc;
+    --bg-color: #f5f7fa;
+    --bg-image: radial-gradient(at 0% 0%, rgba(219, 234, 254, 0.5) 0px, transparent 50%),
+                radial-gradient(at 50% 0%, rgba(243, 232, 255, 0.5) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(224, 242, 254, 0.5) 0px, transparent 50%);
     --bg-alt: rgba(255, 255, 255, 0.85); /* Glass base */
     --text-color: #0f172a;
     --text-muted: #475569;
@@ -36,7 +38,10 @@ body.dark-mode {
     --primary-hover: #F2D06B;
     --accent-color: #1E3A8A;
     
-    --bg-color: #0f172a;
+    --bg-color: #030712;
+    --bg-image: radial-gradient(at 0% 0%, rgba(30, 27, 75, 0.8) 0px, transparent 55%),
+                radial-gradient(at 50% 0%, rgba(15, 23, 42, 0.9) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(88, 28, 135, 0.3) 0px, transparent 55%);
     --bg-alt: rgba(15, 23, 42, 0.75); /* Dark Glass */
     --text-color: #f8fafc;
     --text-muted: #94a3b8;
@@ -58,7 +63,7 @@ body.dark-mode {
 
 body {
     background-color: var(--bg-color);
-    background-image: linear-gradient(rgba(248, 250, 252, 0.92), rgba(248, 250, 252, 0.92)), var(--bg-image);
+    background-image: var(--bg-image);
     background-size: cover;
     background-attachment: fixed;
     background-position: center;
@@ -68,7 +73,7 @@ body {
 }
 
 body.dark-mode {
-    background-image: linear-gradient(rgba(15, 23, 42, 0.94), rgba(15, 23, 42, 0.94)), var(--bg-image);
+    background-image: var(--bg-image);
 }
 
 /* ====== PRINT STYLES FOR EXPORT PDF ====== */
