@@ -2,8 +2,8 @@ import os
 import faiss
 import numpy as np
 import pickle
+import requests
 from typing import List, Any
-from sentence_transformers import SentenceTransformer
 from src.embedding import EmbeddingPipeline
 
 class FaissVectorStore:
@@ -13,10 +13,11 @@ class FaissVectorStore:
         self.index = None
         self.metadata = []
         self.embedding_model = embedding_model
-        self.model = SentenceTransformer(embedding_model)
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
-        print(f"[INFO] Loaded embedding model: {embedding_model}")
+        self.api_url = f"https://api-inference.huggingface.co/models/sentence-transformers/{embedding_model}"
+        self.headers = {"Authorization": f"Bearer {os.getenv('HF_TOKEN', '')}"}
+        print(f"[INFO] Initialized API-based FaissVectorStore: {embedding_model}")
 
     def build_from_documents(self, documents: List[Any]):
         print(f"[INFO] Building vector store from {len(documents)} raw documents...")
@@ -63,8 +64,13 @@ class FaissVectorStore:
 
     def query(self, query_text: str, top_k: int = 5):
         print(f"[INFO] Querying vector store for: '{query_text}'")
-        query_emb = self.model.encode([query_text]).astype('float32')
-        return self.search(query_emb, top_k=top_k)
+        
+        response = requests.post(self.api_url, headers=self.headers, json={"inputs": [query_text], "options": {"wait_for_model": True}})
+        if response.status_code == 200:
+            query_emb = np.array(response.json()).astype('float32')
+            return self.search(query_emb, top_k=top_k)
+        else:
+            raise Exception(f"Failed to generate query embedding: {response.text}")
 
 # Example usage
 if __name__ == "__main__":

@@ -17,7 +17,6 @@ dependencies = [
     "pymupdf>=1.27.1",
     "pypdf>=6.7.5",
     "python-dotenv>=1.2.2",
-    "sentence-transformers>=5.2.3",
     "spacy>=3.8.11",
     "fastapi>=0.110.0",
     "uvicorn>=0.28.0",

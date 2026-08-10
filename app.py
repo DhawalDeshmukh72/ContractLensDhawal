@@ -3,11 +3,6 @@ import os
 import shutil
 from pathlib import Path
 from typing import Optional
-import torch
-
-# Limit PyTorch CPU threads to save RAM on memory-constrained hosting (e.g. 512MB limit)
-torch.set_num_threads(1)
-torch.set_num_interop_threads(1)
 
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
