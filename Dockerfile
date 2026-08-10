@@ -29,8 +29,8 @@ RUN python -m spacy download en_core_web_sm
 # Copy the rest of the application code
 COPY . .
 
-# Expose the application port
-EXPOSE 8000
+# Expose the application port (Hugging Face Spaces expects 7860 by default)
+EXPOSE 7860
 
-# Run the application using uvicorn with single worker to save memory
-CMD ["uvicorn", "main2:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+# Run the application using uvicorn
+CMD ["uvicorn", "main2:app", "--host", "0.0.0.0", "--port", "7860"]

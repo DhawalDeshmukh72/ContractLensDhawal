@@ -1,4 +1,14 @@
-# ContractLens
+---
+title: ContractLens
+emoji: ⚖️
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
+# ContractLens (formerly LegalEase)
 
 ContractLens is an AI system that simplifies legal agreements. It extracts and anonymizes text from PDFs, divides them into clauses, retrieves relevant sections using embeddings and FAISS, and uses an LLM to generate clear explanations.
 
@@ -41,30 +51,20 @@ Then open your browser and navigate to **`http://localhost:8000`**.
 
 ## Hosting & Deployment
 
-Since the backend serves the frontend static assets directly, hosting is simple and can be done on a single service.
+### Option A: Hosting on Hugging Face Spaces (Free 16GB RAM - Recommended)
+1. Go to [Hugging Face Spaces](https://huggingface.co/spaces) and click **Create New Space**.
+2. Set the **Space SDK** to **Docker** (choose the blank template).
+3. Clone the Space repository locally, or connect your GitHub repository using GitHub Actions.
+4. Add your **`GROQ_API_KEY`** in the Space's **Settings -> Variables and Secrets** as a **Secret**.
+5. Once pushed, Hugging Face will build the Docker container and host it automatically.
 
-### Option A: Hosting with Docker (Recommended)
-Build and run the container:
+### Option B: Hosting with Docker
+Build and run the container locally:
 ```bash
 # Build the image
 docker build -t contractlens .
 
 # Run the container
-docker run -p 8000:8000 --env-file .env contractlens
+docker run -p 7860:7860 --env-file .env contractlens
 ```
-
-### Option B: Hosting on Render / Railway
-1. Push your repository to GitHub.
-2. Create a new **Web Service** on Render or Railway.
-3. Connect your repository.
-4. Set the **Build Command** to:
-   ```bash
-   pip install -r requirements.txt && python -m spacy download en_core_web_sm
-   ```
-5. Set the **Start Command** to:
-   ```bash
-   uvicorn main2:app --host 0.0.0.0 --port $PORT
-   ```
-6. Add the following **Environment Variables**:
-   - `GROQ_API_KEY`: Your Groq API key.
-   - `GROQ_MODEL_NAME`: `llama-3.1-8b-instant`
+Then navigate to **`http://localhost:7860`**.

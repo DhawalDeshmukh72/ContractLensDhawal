@@ -6,16 +6,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class RAGSearch:
-    def __init__(self, persist_dir: str, store=None):
+    def __init__(self, persist_dir: str):
         self.persist_dir = persist_dir
-        if store is not None:
-            self.store = store
-        else:
-            self.store = FaissVectorStore(persist_dir)
-            try:
-                self.store.load()
-            except Exception as e:
-                print(f"[WARNING] Could not load Faiss vector store: {e}. You may need to build it first.")
+        self.store = FaissVectorStore(persist_dir)
+        try:
+            self.store.load()
+        except Exception as e:
+            print(f"[WARNING] Could not load Faiss vector store: {e}. You may need to build it first.")
         
         # Initialize Groq LLM
         # Groq API key will be read from environment variable GROQ_API_KEY
