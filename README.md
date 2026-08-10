@@ -3,8 +3,9 @@ title: ContractLens
 emoji: ⚖️
 colorFrom: blue
 colorTo: indigo
-sdk: docker
-app_port: 7860
+sdk: gradio
+sdk_version: 4.40.0
+app_file: app.py
 pinned: false
 ---
 
@@ -43,28 +44,17 @@ python -m spacy download en_core_web_sm
 ### 3. Running Locally
 To run the unified server:
 ```bash
-python main2.py
+python app.py
 ```
-Then open your browser and navigate to **`http://localhost:8000`**.
+Then open your browser and navigate to **`http://localhost:7860`**.
 
 ---
 
 ## Hosting & Deployment
 
-### Option A: Hosting on Hugging Face Spaces (Free 16GB RAM - Recommended)
+### Hosting on Hugging Face Spaces (Free 16GB RAM, No Card Required)
 1. Go to [Hugging Face Spaces](https://huggingface.co/spaces) and click **Create New Space**.
-2. Set the **Space SDK** to **Docker** (choose the blank template).
+2. Set the **Space SDK** to **Gradio**.
 3. Clone the Space repository locally, or connect your GitHub repository using GitHub Actions.
 4. Add your **`GROQ_API_KEY`** in the Space's **Settings -> Variables and Secrets** as a **Secret**.
-5. Once pushed, Hugging Face will build the Docker container and host it automatically.
-
-### Option B: Hosting with Docker
-Build and run the container locally:
-```bash
-# Build the image
-docker build -t contractlens .
-
-# Run the container
-docker run -p 7860:7860 --env-file .env contractlens
-```
-Then navigate to **`http://localhost:7860`**.
+5. Push the code repository. Hugging Face will automatically run `app.py` on their free tier, exposing the unified frontend at `/` and the Gradio fallback dashboard at `/gradio`.

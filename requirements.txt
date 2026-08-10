@@ -13,3 +13,4 @@ presidio_anonymizer
 fastapi
 uvicorn
 python-multipart
+gradio
