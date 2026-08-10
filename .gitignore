@@ -12,3 +12,4 @@ wheels/
 .venv
 __pycache__/
 *.log
+.agents/
