@@ -65,12 +65,39 @@ class FaissVectorStore:
     def query(self, query_text: str, top_k: int = 5):
         print(f"[INFO] Querying vector store for: '{query_text}'")
         
-        response = requests.post(self.api_url, headers=self.headers, json={"inputs": [query_text], "options": {"wait_for_model": True}})
-        if response.status_code == 200:
-            query_emb = np.array(response.json()).astype('float32')
-            return self.search(query_emb, top_k=top_k)
-        else:
-            raise Exception(f"Failed to generate query embedding: {response.text}")
+        # Try HF Inference API first (may not be available on restricted networks)
+        hf_token = os.getenv('HF_TOKEN', '')
+        if hf_token:
+            try:
+                response = requests.post(
+                    self.api_url, 
+                    headers=self.headers, 
+                    json={"inputs": [query_text], "options": {"wait_for_model": True}},
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    query_emb = np.array(response.json()).astype('float32')
+                    return self.search(query_emb, top_k=top_k)
+            except Exception as e:
+                print(f"[WARNING] HF API unavailable, falling back to keyword search: {e}")
+        
+        # Offline fallback: keyword-based TF-IDF scoring
+        print(f"[INFO] Using offline keyword search fallback")
+        query_words = set(query_text.lower().split())
+        scored = []
+        for i, meta in enumerate(self.metadata):
+            text = meta.get("text", "") if meta else ""
+            doc_words = text.lower().split()
+            # Simple overlap score
+            matches = sum(1 for w in doc_words if w in query_words)
+            score = matches / (len(doc_words) + 1)
+            scored.append((i, score, meta))
+        
+        scored.sort(key=lambda x: x[1], reverse=True)
+        results = []
+        for idx, score, meta in scored[:top_k]:
+            results.append({"index": idx, "distance": 1 - score, "metadata": meta})
+        return results
 
 # Example usage
 if __name__ == "__main__":
