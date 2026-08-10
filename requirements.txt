@@ -4,11 +4,9 @@ langchain-community
 pypdf
 pymupdf
 faiss-cpu
-chromadb
 langchain-groq
 python-dotenv
 presidio_analyzer
-presidio_anonymizer
 fastapi
 uvicorn
 python-multipart

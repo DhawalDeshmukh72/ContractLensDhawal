@@ -2,7 +2,73 @@ import fitz
 import re
 
 from presidio_analyzer import AnalyzerEngine, PatternRecognizer, Pattern
-from presidio_anonymizer import AnonymizerEngine
+
+# -------- INITIALIZE ANALYZER GLOBALLY --------
+global_analyzer = AnalyzerEngine()
+
+# -------- CUSTOM PATTERNS --------
+aadhaar_pattern = Pattern(
+    name="aadhaar_pattern",
+    regex=r"\b\d{4}[- ]?\d{4}[- ]?\d{4}\b",
+    score=0.7
+)
+
+pan_pattern = Pattern(
+    name="pan_pattern",
+    regex=r"\b[A-Z]{5}[0-9]{4}[A-Z]\b",
+    score=0.7
+)
+
+ifsc_pattern = Pattern(
+    name="ifsc_pattern",
+    regex=r"\b[A-Z]{4}0[A-Z0-9]{6}\b",
+    score=0.7
+)
+
+bank_pattern = Pattern(
+    name="bank_pattern",
+    regex=r"\b\d{9,18}\b",
+    score=0.5
+)
+
+phone_pattern = Pattern(
+    name="phone_pattern",
+    regex=r"\b[6-9]\d{9}\b",
+    score=0.6
+)
+
+# -------- CREATE RECOGNIZERS --------
+aadhaar_recognizer = PatternRecognizer(
+    supported_entity="AADHAAR",
+    patterns=[aadhaar_pattern]
+)
+
+pan_recognizer = PatternRecognizer(
+    supported_entity="PAN",
+    patterns=[pan_pattern]
+)
+
+ifsc_recognizer = PatternRecognizer(
+    supported_entity="IFSC",
+    patterns=[ifsc_pattern]
+)
+
+bank_recognizer = PatternRecognizer(
+    supported_entity="BANK_ACCOUNT",
+    patterns=[bank_pattern]
+)
+
+phone_recognizer = PatternRecognizer(
+    supported_entity="PHONE_NUMBER",
+    patterns=[phone_pattern]
+)
+
+# -------- ADD TO REGISTRY --------
+global_analyzer.registry.add_recognizer(aadhaar_recognizer)
+global_analyzer.registry.add_recognizer(pan_recognizer)
+global_analyzer.registry.add_recognizer(ifsc_recognizer)
+global_analyzer.registry.add_recognizer(bank_recognizer)
+global_analyzer.registry.add_recognizer(phone_recognizer)
 
 
 def anonymize_pdf(pdf_path):
@@ -17,84 +83,8 @@ def anonymize_pdf(pdf_path):
     # -------- CLEAN EXTRA WHITESPACE --------
     text = re.sub(r'\s+', ' ', text)
 
-    # -------- INITIALIZE ANALYZER --------
-    analyzer = AnalyzerEngine()
-
-    # -------- CUSTOM PATTERNS --------
-
-    # Aadhaar
-    aadhaar_pattern = Pattern(
-        name="aadhaar_pattern",
-        regex=r"\b\d{4}[- ]?\d{4}[- ]?\d{4}\b",
-        score=0.7
-    )
-
-    # PAN
-    pan_pattern = Pattern(
-        name="pan_pattern",
-        regex=r"\b[A-Z]{5}[0-9]{4}[A-Z]\b",
-        score=0.7
-    )
-
-    # IFSC
-    ifsc_pattern = Pattern(
-        name="ifsc_pattern",
-        regex=r"\b[A-Z]{4}0[A-Z0-9]{6}\b",
-        score=0.7
-    )
-
-    # Bank account number
-    bank_pattern = Pattern(
-        name="bank_pattern",
-        regex=r"\b\d{9,18}\b",
-        score=0.5
-    )
-
-    # Phone number (Indian)
-    phone_pattern = Pattern(
-        name="phone_pattern",
-        regex=r"\b[6-9]\d{9}\b",
-        score=0.6
-    )
-
-    # -------- CREATE RECOGNIZERS --------
-
-    aadhaar_recognizer = PatternRecognizer(
-        supported_entity="AADHAAR",
-        patterns=[aadhaar_pattern]
-    )
-
-    pan_recognizer = PatternRecognizer(
-        supported_entity="PAN",
-        patterns=[pan_pattern]
-    )
-
-    ifsc_recognizer = PatternRecognizer(
-        supported_entity="IFSC",
-        patterns=[ifsc_pattern]
-    )
-
-    bank_recognizer = PatternRecognizer(
-        supported_entity="BANK_ACCOUNT",
-        patterns=[bank_pattern]
-    )
-
-    phone_recognizer = PatternRecognizer(
-        supported_entity="PHONE_NUMBER",
-        patterns=[phone_pattern]
-    )
-
-    # -------- ADD TO REGISTRY --------
-
-    analyzer.registry.add_recognizer(aadhaar_recognizer)
-    analyzer.registry.add_recognizer(pan_recognizer)
-    analyzer.registry.add_recognizer(ifsc_recognizer)
-    analyzer.registry.add_recognizer(bank_recognizer)
-    analyzer.registry.add_recognizer(phone_recognizer)
-
     # -------- ANALYZE TEXT --------
-
-    results = analyzer.analyze(
+    results = global_analyzer.analyze(
         text=text,
         entities=[
             "PERSON",
