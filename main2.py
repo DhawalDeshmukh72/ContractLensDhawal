@@ -18,6 +18,16 @@ from src.clause_splitter import split_clauses
 
 BASE_DIR = Path(__file__).resolve().parent
 
+# Load vector store and search globally once at startup to minimize memory overhead
+FAISS_PATH = BASE_DIR / "src" / "faiss_store"
+global_store = FaissVectorStore(str(FAISS_PATH))
+try:
+    global_store.load()
+except Exception as e:
+    print(f"[WARNING] Could not load Faiss vector store: {e}")
+
+global_rag_search = RAGSearch(persist_dir=str(FAISS_PATH), store=global_store)
+
 app = FastAPI(title="Legalease API")
 
 # Add CORS middleware to allow calls from the frontend
@@ -72,16 +82,8 @@ def analyze_contract(pdf_path):
     # -------- Step 2: Split clauses --------
     clauses = split_clauses(masked_text)
 
-    # -------- Step 3: Load Vector Store --------
-    
-
-    BASE_DIR = Path(__file__).resolve().parent
-    FAISS_PATH = BASE_DIR / "src" / "faiss_store"
-
-    store = FaissVectorStore(str(FAISS_PATH))
-    store.load()
-
-    rag_search = RAGSearch(persist_dir=str(FAISS_PATH))
+    # -------- Step 3: Use Global Vector Store & RAG --------
+    # Reusing global_store and global_rag_search to prevent high memory usage
 
     results = []
 
@@ -89,7 +91,7 @@ def analyze_contract(pdf_path):
     for idx, clause in enumerate(clauses):
 
         # Retrieve legal context
-        retrieved_docs = store.query(clause, top_k=3)
+        retrieved_docs = global_store.query(clause, top_k=3)
 
         context = "\n".join([doc["metadata"]["text"] for doc in retrieved_docs if doc.get("metadata")])
 
@@ -99,7 +101,7 @@ def analyze_contract(pdf_path):
         )
 
         # Ask LLM
-        response = rag_search.llm.invoke(prompt)
+        response = global_rag_search.llm.invoke(prompt)
         content = response.content
 
         # Clean JSON markdown (if exists)
@@ -158,7 +160,7 @@ async def api_analyze_contract(file: UploadFile = File(...)):
 
 @app.post("/ask_question")
 async def ask_question(req: QuestionRequest):
-    rag_search = RAGSearch(persist_dir=str(BASE_DIR / "src" / "faiss_store"))
+    # Reuse global_rag_search to prevent high memory usage
     
     # Extract context from the contract_context (JSON analysis data) provided by the frontend
     context_text = ""
@@ -171,7 +173,7 @@ async def ask_question(req: QuestionRequest):
     
     if not context_text:
         # If no explicit contract context passed, fallback to vectorstore search
-        answer = rag_search.search_and_summarize(req.question)
+        answer = global_rag_search.search_and_summarize(req.question)
     else:
         # Ask LLM with the uploaded contract context
         prompt = f"""You are a helpful legal AI assistant for a contract analysis tool.
@@ -186,7 +188,7 @@ Question: {req.question}
 
 Answer:"""
         try:
-            response = rag_search.llm.invoke([prompt])
+            response = global_rag_search.llm.invoke([prompt])
             answer = response.content
         except Exception as e:
             answer = f"Error processing question: {str(e)}"
