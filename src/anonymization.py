@@ -10,6 +10,7 @@ nlp = spacy.load("en_core_web_sm", exclude=["parser", "attribute_ruler", "lemmat
 
 class LoadedSpacyNlpEngine(SpacyNlpEngine):
     def __init__(self, loaded_model):
+        super().__init__()
         self.nlp = {"en": loaded_model}
 
 nlp_engine = LoadedSpacyNlpEngine(loaded_model=nlp)
